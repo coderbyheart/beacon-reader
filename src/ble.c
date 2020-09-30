@@ -12,13 +12,13 @@
 
 #include "ble.h"
 
-struct sensor_data inside = { .name = "", .temperature = -127 };
-struct sensor_data outside = { .name = "", .temperature = -127 };
+struct sensor_data inside = { .name = "", .temperature = -127.0 };
+struct sensor_data outside = { .name = "", .temperature = -127.0 };
 
 static bool adv_data_found(struct bt_data *data, void *user_data)
 {
 	struct sensor_data *sensorData = user_data;
-
+	
 	switch (data->type) {
 	case BT_DATA_NAME_SHORTENED:
 	case BT_DATA_NAME_COMPLETE:
@@ -27,7 +27,7 @@ static bool adv_data_found(struct bt_data *data, void *user_data)
 		       MIN(data->data_len, sizeof(sensorData->name) - 1));
 		return true;
 	case BT_DATA_SVC_DATA16:
-		sensorData->temperature = (data->data[3] << 8) | data->data[2];
+		sensorData->temperature = ((data->data[3] << 8) | data->data[2]) / 100.0;
 		return true;
 	default:
 		return true;
@@ -42,12 +42,12 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
 	bt_addr_le_to_str(addr, le_addr, sizeof(le_addr));
 	if (strcmp(le_addr, "f0:49:04:8f:16:e5 (random)") == 0) {
 		bt_data_parse(ad, adv_data_found, &outside);
-		printk("%s %s %d %ddBm\n", le_addr, outside.name,
-		       outside.temperature, rssi);
+		printf("%s (%ddBm) %f\n", outside.name,
+		       rssi, outside.temperature);
 	} else if (strcmp(le_addr, "d6:6f:5e:2f:a3:81 (random)") == 0) {
 		bt_data_parse(ad, adv_data_found, &inside);
-		printk("%s %s %d %ddBm\n", le_addr, inside.name,
-		       inside.temperature, rssi);
+		printf("%s (%ddBm) %f\n", inside.name,
+		       rssi, inside.temperature );
 	}
 }
 

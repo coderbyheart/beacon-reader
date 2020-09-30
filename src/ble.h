@@ -6,7 +6,7 @@ void ble_init(void);
 #define NAME_LEN 30
 
 struct sensor_data {
-	uint16_t temperature;
+	float temperature;
 	char name[NAME_LEN];
 };
 
