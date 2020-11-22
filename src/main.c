@@ -9,5 +9,5 @@
 
 void main(void)
 {
-	ble_init();
+	beacons_init();
 }

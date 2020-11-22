@@ -75,10 +75,7 @@ static void scan_start(void)
 		.window = 0x0060,
 	};
 
-	int err;
-
-	err += bt_le_scan_start(&scan_param, scan_cb);
-
+	int err = bt_le_scan_start(&scan_param, scan_cb);
 	if (err) {
 		printk("Starting scanning failed (err %d)\n", err);
 		return;
@@ -120,7 +117,7 @@ static void work_init(void)
 	k_delayed_work_init(&disable_scan_work, disable_scan_work_fn);
 }
 
-void ble_init(void)
+void beacons_init()
 {
 	work_init();
 	printk("Initializing Bluetooth..\n");
