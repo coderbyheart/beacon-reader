@@ -18,6 +18,6 @@ This implements a temperature beacon reader using the nRF9160 DK:
 
 ### For the nRF52840 of the DK
 
-    docker run --rm -v ${PWD}:/workdir/ncs/nrf coderbyheart/fw-nrfconnect-nrf-docker:latest \
-        /bin/bash -c 'cd ncs/zephyr && west build samples/bluetooth/hci_uart -p always -b nrf9160dk_nrf52840 && ls -la build/zephyr && cp build/zephyr/zephyr.hex /workdir/ncs/nrf/hci_uart.hex'
+    docker run --rm -v ${PWD}:/workdir/ncs/tbr sdk-nrf-tbr \
+        /bin/bash -c 'cd ncs/zephyr && west build samples/bluetooth/hci_uart -p always -b nrf9160dk_nrf52840 && ls -la build/zephyr && cp build/zephyr/zephyr.hex /workdir/ncs/tbr/hci_uart.hex'
     nrfjprog -f nrf52 --program hci_uart.hex --sectoranduicrerase -r --log
