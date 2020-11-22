@@ -12,8 +12,13 @@
 
 #include "ble.h"
 
-struct sensor_data inside = { .name = "", .temperature = -127.0 };
-struct sensor_data outside = { .name = "", .temperature = -127.0 };
+struct sensor_data inside = { .name = "", .temperature = -127.0, .fresh = false };
+struct sensor_data outside = { .name = "", .temperature = -127.0, .fresh = false };
+
+uint16_t scanDurationSeconds = 60;
+uint16_t scanPauseSeconds = 60;
+static struct k_delayed_work enable_scan_work;
+static struct k_delayed_work disable_scan_work;
 
 static bool adv_data_found(struct bt_data *data, void *user_data)
 {
@@ -28,6 +33,7 @@ static bool adv_data_found(struct bt_data *data, void *user_data)
 		return true;
 	case BT_DATA_SVC_DATA16:
 		sensorData->temperature = ((data->data[3] << 8) | data->data[2]) / 100.0;
+		sensorData->fresh = true;
 		return true;
 	default:
 		return true;
@@ -49,10 +55,19 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
 		printf("%s (%ddBm) %f\n", inside.name,
 		       rssi, inside.temperature );
 	}
+
+	if (inside.fresh && outside.fresh) {
+		printf("Inside (%f) and Outside (%f) fresh!\n", inside.temperature, outside.temperature);
+		k_delayed_work_cancel(&disable_scan_work);
+		k_delayed_work_submit(&disable_scan_work, K_NO_WAIT);
+	}
 }
 
 static void scan_start(void)
 {
+	inside.fresh = false;
+	outside.fresh = false;
+
 	struct bt_le_scan_param scan_param = {
 		.type = BT_HCI_LE_SCAN_PASSIVE,
 		.options = BT_LE_SCAN_OPT_NONE,
@@ -73,11 +88,41 @@ static void scan_start(void)
 static void ble_ready(int err)
 {
 	printk("Bluetooth initialized.\n");
+	k_delayed_work_submit(&enable_scan_work, K_NO_WAIT);
+}
+
+static void enable_scan_work_fn(struct k_work *work)
+{
+	printk("Scanning for %d seconds...\n", scanDurationSeconds);
 	scan_start();
+	k_delayed_work_submit(&disable_scan_work, K_SECONDS(scanDurationSeconds));
+}
+
+static void scan_stop(void)
+{
+	int err = bt_le_scan_stop();
+	if (err) {
+		printk("Stopping scanning failed (err %d)\n", err);
+		return;
+	}
+}
+
+static void disable_scan_work_fn(struct k_work *work)
+{
+	printk("Disabling scanning for %d seconds...\n", scanPauseSeconds);
+	scan_stop();
+	k_delayed_work_submit(&enable_scan_work, K_SECONDS(scanPauseSeconds));
+}
+
+static void work_init(void)
+{
+	k_delayed_work_init(&enable_scan_work, enable_scan_work_fn);
+	k_delayed_work_init(&disable_scan_work, disable_scan_work_fn);
 }
 
 void ble_init(void)
 {
+	work_init();
 	printk("Initializing Bluetooth..\n");
 	int err = bt_enable(ble_ready);
 	if (err) {

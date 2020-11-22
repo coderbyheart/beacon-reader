@@ -8,6 +8,7 @@ void ble_init(void);
 struct sensor_data {
 	float temperature;
 	char name[NAME_LEN];
+	bool fresh;
 };
 
 #endif /* _BLE_H_ */
